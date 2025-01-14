@@ -1,66 +1,183 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Widget System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A simple widget system built with Laravel that can be embedded on any website.
 
-## About Laravel
+## Prerequisites
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP >= 8.1
+- Composer
+- Laravel >= 9.x
+- Web server (Apache/Nginx)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Installation
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Clone the repository:
 
-## Learning Laravel
+git clone <repository-url>
+cd <project-folder>
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+3. Copy the environment file:
+```bash
+cp .env.example .env
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+4. Generate application key:
+```bash
+php artisan key:generate
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Setting up the Widget System
 
-## Laravel Sponsors
+1. Create the necessary middleware:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+Create file `app/Http/Middleware/Cors.php`:
+```php
+<?php
 
-### Premium Partners
+namespace App\Http\Middleware;
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+use Closure;
+use Illuminate\Http\Request;
 
-## Contributing
+class Cors
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $response = $next($request);
+        
+        $origin = $request->header('Origin');
+        
+        $allowedOrigins = [
+            'http://localhost',
+            'http://localhost:8080',
+            'http://127.0.0.1',
+            'http://127.0.0.1:8080'
+        ];
+        
+        if (in_array($origin, $allowedOrigins)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With, Authorization, X-CSRF-TOKEN');
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Max-Age', '86400');
+        }
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+        if ($request->isMethod('OPTIONS')) {
+            return response()->json('OK', 200)->withHeaders($response->headers->all());
+        }
+        
+        return $response;
+    }
+}
+```
 
-## Code of Conduct
+2. Create the widget views:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Create directory and files:
+```bash
+mkdir -p resources/views/widgets
+touch resources/views/widgets/{embed.blade.php,script.blade.php,styles.blade.php}
+```
 
-## Security Vulnerabilities
+3. Update your routes in `routes/web.php`:
+```php
+Route::prefix('widget')->group(function () {
+    Route::get('render', [WidgetController::class, 'render']);
+    Route::get('script.js', [WidgetController::class, 'script']);
+    Route::get('styles.css', [WidgetController::class, 'styles']);
+    Route::get('data', [WidgetController::class, 'data']);
+    Route::post('action', [WidgetController::class, 'action']);
+});
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. Update CSRF configuration in `app/Http/Middleware/VerifyCsrfToken.php`:
+```php
+protected $except = [
+    'widget/*'
+];
+```
+
+## Testing the Widget
+
+1. Start the Laravel development server:
+```bash
+php artisan serve
+```
+
+2. Create a test HTML file (test.html):
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Widget Test</title>
+    <link rel="stylesheet" href="http://127.0.0.1:8000/widget/styles.css">
+</head>
+<body>
+    <div id="laravel-widget"></div>
+
+    <script src="http://127.0.0.1:8000/widget/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            LaravelWidget.init('laravel-widget', {
+                apiUrl: 'http://127.0.0.1:8000/widget',
+                theme: 'light',
+                title: 'My Laravel Widget'
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+3. Serve the test file:
+```bash
+php -S localhost:8080
+```
+
+4. Visit http://localhost:8080/test.html in your browser to see the widget in action.
+
+## Customization
+
+- To modify the widget's appearance, edit `resources/views/widgets/styles.blade.php`
+- To change the widget's behavior, edit `resources/views/widgets/script.blade.php`
+- To update the widget's HTML structure, edit `resources/views/widgets/embed.blade.php`
+
+## Security Considerations
+
+- Update the `$allowedOrigins` array in the Cors middleware to include your production domains
+- Implement proper authentication if needed
+- Add rate limiting for the widget endpoints
+- Consider implementing API keys for production use
+
+## Troubleshooting
+
+If you encounter CORS issues:
+1. Check that the origin domain is included in `$allowedOrigins`
+2. Ensure all necessary CORS headers are being set
+3. Clear browser cache and reload the page
+
+If you see 419 errors:
+1. Verify the widget routes are excluded in VerifyCsrfToken middleware
+2. Check that the CORS middleware is properly registered
+
+## Production Deployment
+
+Before deploying to production:
+1. Update the allowed origins in the CORS middleware
+2. Implement proper security measures
+3. Configure your web server to handle CORS properly
+4. Use HTTPS for all endpoints
+5. Consider implementing caching for better performance
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+[Your License Here]
+```
+
+This README provides a comprehensive guide for setting up and using the widget system. Make sure to:
+1. Replace `<repository-url>` with your actual repository URL
+2. Add appropriate license information
+3. Update security considerations based on your specific needs
+4. Add any additional customization options specific to your widget
+5. Include any environment-specific configuration requirements
+
