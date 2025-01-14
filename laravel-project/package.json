@@ -1,0 +1,22 @@
+{
+  "name": "laravel-project",
+  "version": "1.0.0",
+  "description": "A Laravel project for managing widgets.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npm run watch",
+    "watch": "mix watch",
+    "build": "npm run production",
+    "production": "mix --production"
+  },
+  "dependencies": {
+    "laravel-mix": "^6.0.0",
+    "vue": "^2.6.12"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "sass": "^1.32.0",
+    "sass-loader": "^10.1.1"
+  },
+  "license": "MIT"
+}
