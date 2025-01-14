@@ -171,7 +171,6 @@ Before deploying to production:
 
 ## License
 
-[Your License Here]
 ```
 
 This README provides a comprehensive guide for setting up and using the widget system. Make sure to:
